@@ -2,32 +2,32 @@ const DELTA = 1/177;
 
 function GameWorld() {    
     this.balls = [
-        [new Vector2(860 - 57, 350), COLOR.YELLOW],        
-        [new Vector2(860 - 36, 350 - 19), COLOR.YELLOW],   
-        [new Vector2(860 - 36, 350 + 19), COLOR.RED],      
-        [new Vector2(860, 350 - 38), COLOR.RED],      
-        [new Vector2(860, 350), COLOR.BLACK],       
-        [new Vector2(860, 350 + 38), COLOR.YELLOW],   
-        [new Vector2(860 + 36, 350 - 57), COLOR.RED],
-        [new Vector2(860 + 36, 350 - 19), COLOR.YELLOW],
-        [new Vector2(860 + 36, 350 + 19), COLOR.RED],
-        [new Vector2(860 + 36, 350 + 57), COLOR.YELLOW],
-        [new Vector2(860 + 57, 350 - 74), COLOR.RED],     
-        [new Vector2(860 + 57, 350 - 38), COLOR.RED],
-        [new Vector2(860 + 57, 350), COLOR.YELLOW],
-        [new Vector2(860 + 57, 350 + 38), COLOR.RED],
-        [new Vector2(860 + 57, 350 + 74), COLOR.YELLOW],
-        [new Vector2(300, 350), COLOR.WHITE]   
+        [new Vector2(860 - 57, 348), COLOR.YELLOW],        
+        [new Vector2(860 - 36, 348 - 19), COLOR.YELLOW],   
+        [new Vector2(860 - 36, 348 + 19), COLOR.RED],      
+        [new Vector2(860, 348 - 38), COLOR.RED],      
+        [new Vector2(860, 348), COLOR.BLACK],       
+        [new Vector2(860, 348 + 38), COLOR.YELLOW],   
+        [new Vector2(860 + 36, 348 - 57), COLOR.RED],
+        [new Vector2(860 + 36, 348 - 19), COLOR.YELLOW],
+        [new Vector2(860 + 36, 348 + 19), COLOR.RED],
+        [new Vector2(860 + 36, 348 + 57), COLOR.YELLOW],
+        [new Vector2(860 + 57, 348 - 74), COLOR.RED],     
+        [new Vector2(860 + 57, 348 - 38), COLOR.RED],
+        [new Vector2(860 + 57, 348), COLOR.YELLOW],
+        [new Vector2(860 + 57, 348 + 38), COLOR.RED],
+        [new Vector2(860 + 57, 348 + 74), COLOR.YELLOW],
+        [new Vector2(300, 348), COLOR.WHITE]   
     ].map(params => new Ball(params[0], params[1], this));
 
     this.whiteBall = this.balls[this.balls.length - 1];
 
     this.stick = new Stick(
-        new Vector2(300,350), 
+        new Vector2(300,352), 
         this.whiteBall.shoot.bind(this.whiteBall)
     );
 
-    const EDGE = BALL_RADIUS * 2.4; 
+    const EDGE = BALL_RADIUS * 2.0; 
     this.table = {
         TopY: EDGE,
         RightX: 1200 - EDGE,
@@ -146,10 +146,10 @@ GameWorld.prototype.handlePocketCollisions = function() {
                 if (ball !== this.whiteBall) {
                     this.pottedBallThisTurn = true;
                     
-                    console.log("Potted ball object:", ball);
-                    console.log("Ball properties:", Object.keys(ball));
-                    console.log("Ball color property:", ball.color);
-                    console.log("Ball color type:", typeof ball.color);
+                    // console.log("Potted ball object:", ball);
+                    // console.log("Ball properties:", Object.keys(ball));
+                    // console.log("Ball color property:", ball.color);
+                    // console.log("Ball color type:", typeof ball.color);
                     
                     const currentPlayerBallColor = this.playerBallTypes[this.currentPlayer];
                     let foul = false;
@@ -159,25 +159,41 @@ GameWorld.prototype.handlePocketCollisions = function() {
                         if (this.currentPlayer === 1) {
                             this.playerScores.player1++;
                             containerId = 'player1-balls';
-                            console.log("Player 1 scored! Yellow balls:", this.playerScores.player1);
+                            // console.log("Player 1 scored! Yellow balls:", this.playerScores.player1);
                         } else {
                             this.playerScores.player2++;
                             containerId = 'player2-balls';
-                            console.log("Player 2 scored! Red balls:", this.playerScores.player2);
+                            // console.log("Player 2 scored! Red balls:", this.playerScores.player2);
                         }
-                    } else if (ball.color === COLOR.BLACK) {
-                        containerId = (this.currentPlayer === 1) ? 'player1-balls' : 'player2-balls';
-                        console.log("8-ball potted by Player", this.currentPlayer);
-                    } else {
+                    }
+                    else if(ball.color === COLOR.BLACK) {
+                        const currentPlayerScore = (this.currentPlayer === 1) ? this.playerScores.player1 : this.playerScores.player2;
+                        if (currentPlayerScore >= 7) {
+                            containerId = (this.currentPlayer === 1) ? 'player1-balls' : 'player2-balls';
+                            console.log("Legal 8-ball pot by Player", this.currentPlayer);
+                            PoolGame.showWinScreen(this.currentPlayer);
+                            this.balls.splice(i, 1);
+                            return;
+                        } else {
+                            foul = true;
+                            console.log("8-ball potted too early by Player", this.currentPlayer);
+                            PoolGame.showWinScreen(this.currentPlayer === 1 ? 2 : 1);
+                            this.balls.splice(i, 1);
+                            return;
+                        }
+
+
+                    }
+                     else {
                         foul = true;
                         if (this.currentPlayer === 1) {
                             this.playerScores.player2++;
                             containerId = 'player2-balls';
-                            console.log("Foul: Player 1 potted red ball. Player 2 score:", this.playerScores.player2);
+                            // console.log("Foul: Player 1 potted red ball. Player 2 score:", this.playerScores.player2);
                         } else {
                             this.playerScores.player1++;
                             containerId = 'player1-balls';
-                            console.log("Foul: Player 2 potted yellow ball. Player 1 score:", this.playerScores.player1);
+                            // console.log("Foul: Player 2 potted yellow ball. Player 1 score:", this.playerScores.player1);
                         }
                     }
 
@@ -192,7 +208,7 @@ GameWorld.prototype.handlePocketCollisions = function() {
                     
                     if (containerId && ballSprite) {
                         const container = document.getElementById(containerId);
-                        console.log("Container found:", container);
+                        // console.log("Container found:", container);
                         
                         if (container) {
                             const img = document.createElement('img');
@@ -212,10 +228,10 @@ GameWorld.prototype.handlePocketCollisions = function() {
                             container.appendChild(img);
                             console.log("Ball image added successfully!");
                         } else {
-                            console.error("Container not found:", containerId);
+                            // console.error("Container not found:", containerId);
                         }
                     } else {
-                        console.error("Missing containerId or ballSprite:", containerId, ballSprite);
+                        // console.error("Missing containerId or ballSprite:", containerId, ballSprite);
                     }
 
                     this.balls.splice(i, 1); 
@@ -223,6 +239,7 @@ GameWorld.prototype.handlePocketCollisions = function() {
 
                     if (foul) {
                         this.handleFoul('You potted your opponent\'s ball!');
+                        console.log("idiot")
                     }
 
                 } else {
@@ -233,14 +250,14 @@ GameWorld.prototype.handlePocketCollisions = function() {
             }
         }
     }
-};
 
+};
 GameWorld.prototype.handleFoul = function(reason) {
     this.foulOccurred = true;
     
     this.showFoulBanner(reason || "Foul occurred!");
     
-    this.whiteBall.position = new Vector2(300, 350);
+    this.whiteBall.position = new Vector2(300, 348);
     this.whiteBall.velocity = new Vector2(0, 0);
     this.whiteBall.moving = false;
     
