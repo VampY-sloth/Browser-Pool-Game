@@ -35,3 +35,11 @@ It's the basic pool game that you may have played in your childhood.
   <li>BLACK Ball Potted : LOSE !!</li>
   <li>ALl Yellow/Red + Black ball (should be the last ball potted) : WIN !! </li>
 </ul>
+
+<hr>
+
+<h3>Game Website : https://vampy-sloth.github.io/Browser-Pool-Game/</h3>
+
+<hr>
+
+<h4>Credit : https://www.youtube.com/channel/UCLUtNUb2G2XHp9Zty__D3xw</h4>
