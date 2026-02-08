@@ -1,3 +1,4 @@
+// Fixed collision detection methods for the Stick prototype
 const STICK_ORIGIN = new Vector2(970,11);
 const STICK_SHOT_ORIGIN = new Vector2(950, 11);
 const MAX_POWER = 8000;
@@ -59,8 +60,8 @@ Stick.prototype.reposition = function(position){
 }
 
 Stick.prototype.calculateCollisionPoint = function(startX, startY, angle) {
-    const stepSize = 1; 
-    const maxDistance = 1800; 
+    const stepSize = 1; // Slightly larger step size for better performance
+    const maxDistance = 1800; // Maximum line length
     
     let currentX = startX;
     let currentY = startY;
@@ -81,24 +82,29 @@ Stick.prototype.calculateCollisionPoint = function(startX, startY, angle) {
         currentX += deltaX;
         currentY += deltaY;
         
+        // Debug: Log ball positions occasionally
         if (distance % 50 === 0 && gameWorld.balls) {
             console.log(`Checking collision at (${currentX.toFixed(1)}, ${currentY.toFixed(1)}), balls count: ${gameWorld.balls.length}`);
         }
         
+        // Check collision with balls FIRST (excluding the white ball we're shooting from)
         if (gameWorld.balls && Array.isArray(gameWorld.balls) && gameWorld.balls.length > 0) {
             for (let i = 0; i < gameWorld.balls.length; i++) {
                 const ball = gameWorld.balls[i];
                 
+                // Skip if it's the white ball, ball doesn't exist, or ball is not visible
                 if (!ball || !ball.position || ball === gameWorld.whiteBall) {
                     continue;
                 }
                 
+                // Additional check: make sure ball is actually on the table (not pocketed)
                 if (ball.visible === false || ball.inPocket === true) {
                     continue;
                 }
                 
                 if (this.isPointCollidingWithBall(currentX, currentY, ball)) {
                     console.log(`Ball collision detected with ball at (${ball.position.x}, ${ball.position.y})`);
+                    // Return the point just before collision
                     return { 
                         x: currentX - deltaX * 2, 
                         y: currentY - deltaY * 2 
@@ -107,10 +113,12 @@ Stick.prototype.calculateCollisionPoint = function(startX, startY, angle) {
             }
         }
         
+        // Check collision with table boundaries/cushions
         if (this.isPointCollidingWithTable(currentX, currentY)) {
             return { x: currentX - deltaX, y: currentY - deltaY };
         }
         
+        // Check collision with pockets (optional)
         if (gameWorld.pockets && Array.isArray(gameWorld.pockets)) {
             for (let pocket of gameWorld.pockets) {
                 if (pocket && this.isPointCollidingWithPocket(currentX, currentY, pocket)) {
@@ -120,6 +128,7 @@ Stick.prototype.calculateCollisionPoint = function(startX, startY, angle) {
         }
     }
     
+    // No collision found, return max distance point
     return {
         x: startX + Math.cos(angle) * maxDistance,
         y: startY + Math.sin(angle) * maxDistance
@@ -135,8 +144,10 @@ Stick.prototype.isPointCollidingWithBall = function(x, y, ball) {
     const dy = y - ball.position.y;
     const distance = Math.sqrt(dx * dx + dy * dy);
     
-    let ballRadius = 15; 
+    // Try to get ball radius from different possible sources
+    let ballRadius = 15; // Default fallback
     
+    // Check various possible locations for BALL_RADIUS
     if (typeof BALL_RADIUS !== 'undefined') {
         ballRadius = BALL_RADIUS;
     } else if (typeof window !== 'undefined' && window.BALL_RADIUS) {
@@ -146,13 +157,16 @@ Stick.prototype.isPointCollidingWithBall = function(x, y, ball) {
     } else if (ball.size) {
         ballRadius = ball.size / 2;
     } else {
-        ballRadius = 18;
+        // Try to estimate from the game setup
+        ballRadius = 18; // Slightly larger estimate
     }
     
+    // Use a collision radius that's slightly larger for reliable detection
     const collisionRadius = ballRadius + 2;
     
-    if (distance <= collisionRadius + 5) { // 
-        // console.log(`Ball distance: ${distance.toFixed(2)}, collision radius: ${collisionRadius}, ball at (${ball.position.x}, ${ball.position.y})`);
+    // Debug logging for troubleshooting
+    if (distance <= collisionRadius + 5) { // Log when we're close
+        console.log(`Ball distance: ${distance.toFixed(2)}, collision radius: ${collisionRadius}, ball at (${ball.position.x}, ${ball.position.y})`);
     }
     
     return distance <= collisionRadius;
@@ -161,6 +175,7 @@ Stick.prototype.isPointCollidingWithBall = function(x, y, ball) {
 Stick.prototype.isPointCollidingWithPocket = function(x, y, pocket) {
     if (!pocket) return false;
     
+    // Handle different pocket position formats
     let pocketX, pocketY;
     if (pocket.position) {
         pocketX = pocket.position.x;
@@ -174,15 +189,18 @@ Stick.prototype.isPointCollidingWithPocket = function(x, y, pocket) {
     const dy = y - pocketY;
     const distance = Math.sqrt(dx * dx + dy * dy);
     
+    // Use GameWorld's pocketRadius
     const pocketRadius = (typeof GameWorld !== 'undefined' && GameWorld.pocketRadius) ? GameWorld.pocketRadius : 39;
     return distance <= pocketRadius;
 }
 
 Stick.prototype.isPointCollidingWithTable = function(x, y) {
+    // Use GameWorld's table boundaries
     if (typeof GameWorld !== 'undefined' && GameWorld.table) {
         const table = GameWorld.table;
         
-        const buffer = 15; 
+        // Add small buffer to account for ball radius
+        const buffer = 15; // Approximate ball radius
         
         if (x <= (table.LeftX + buffer) || 
             x >= (table.RightX - buffer) ||
@@ -191,6 +209,7 @@ Stick.prototype.isPointCollidingWithTable = function(x, y) {
             return true;
         }
     } else {
+        // Fallback to basic boundary check
         const tableMargin = 50;
         if (x < tableMargin || x > (Canvas._canvas.width - tableMargin) ||
             y < tableMargin || y > (Canvas._canvas.height - tableMargin)) {
@@ -203,23 +222,29 @@ Stick.prototype.isPointCollidingWithTable = function(x, y) {
 
 Stick.prototype.drawLine = function() {
     
+    // Don't draw line if stick has been shot
     if (this.shot) {
         return;
     }
     
+    // Calculate power percentage (0 to 1)
     const powerPercent = this.power / MAX_POWER;
     
+    // Generate color based on power level
     let strokeColor;
     let lineWidth = 1;
     
     if (this.power === 0) {
+        // Default white color when no power
         strokeColor = 'rgba(255,255,255,0.45)';
         lineWidth = 1;
     } else if (powerPercent <= 0.33) {
+        // Green phase (0-33% power)
         const greenIntensity = Math.floor(255 * (powerPercent / 0.33));
         strokeColor = `rgba(${255 - greenIntensity}, 255, ${255 - greenIntensity}, 0.8)`;
         lineWidth = 2;
     } else if (powerPercent <= 0.66) {
+        // Yellow phase (33-66% power)
         const yellowPhase = (powerPercent - 0.33) / 0.33;
         const red = Math.floor(255);
         const green = Math.floor(255);
@@ -227,6 +252,7 @@ Stick.prototype.drawLine = function() {
         strokeColor = `rgba(${red}, ${green}, ${blue}, 0.9)`;
         lineWidth = 3;
     } else {
+        // Red phase (66-100% power)
         const redPhase = (powerPercent - 0.66) / 0.34;
         const red = Math.floor(255);
         const green = Math.floor(255 * (1 - redPhase));
@@ -235,11 +261,14 @@ Stick.prototype.drawLine = function() {
         lineWidth = 4;
     }
     
+    // Starting point
     const beginX = this.position.x;
     const beginY = this.position.y;
     
+    // Calculate collision point
     const collisionPoint = this.calculateCollisionPoint(beginX, beginY, this.rotation);
     
+    // Draw the line
     Canvas._canvasContext.beginPath();
     Canvas._canvasContext.strokeStyle = strokeColor;
     Canvas._canvasContext.lineWidth = lineWidth;
@@ -247,6 +276,7 @@ Stick.prototype.drawLine = function() {
     Canvas._canvasContext.lineTo(collisionPoint.x, collisionPoint.y);
     Canvas._canvasContext.stroke();
     
+    // Optional: Draw a small dot at collision point for debugging
     if (this.power > 0) {
         Canvas._canvasContext.beginPath();
         Canvas._canvasContext.fillStyle = strokeColor;
